@@ -42,10 +42,10 @@ stages:
               scriptType: "ps"
               inlineScript: |
                 az deployment sub validate `
-                  --name $(Build.DefinitionName) `
-                  --template-file ./infrastructure/main.bicep `
-                  --location $(location) `
-                  --parameters location=$(location) prefix=$(namespace) postfix=$(postfix) env=$(environment)
+                  --name "$(Build.DefinitionName)" `
+                  --template-file "./infrastructure/main.bicep" `
+                  --location "$(location)" `
+                  --parameters location="$(location)" prefix="$(namespace)" postfix="$(postfix)" env="$(environment)"
 
   - stage: CheckOutBicepAndDeploy
     displayName: Deploy AML Workspace
@@ -64,13 +64,13 @@ stages:
                   displayName: Running ${{ variables.environment }} Deployment
                   inputs:
                     azureSubscription: $(ado_service_connection_rg)
-                    scriptType: bash
-                    scriptLocation: inlineScript
+                    scriptType: "ps"
+                    scriptLocation: "inlineScript"
                     inlineScript: |
                       az --version
                       echo "deploying bicep..."
-                      az deployment sub create \
-                        --name $(Build.DefinitionName) \
-                        --location $(location) \
-                        --template-file ./infrastructure/main.bicep \
-                        --parameters location=$(location) prefix=$(namespace) postfix=$(postfix) env=$(environment)
+                      az deployment sub create `
+                        --name "$(Build.DefinitionName)" `
+                        --location "$(location)" `
+                        --template-file "./infrastructure/main.bicep" `
+                        --parameters location="$(location)" prefix="$(namespace)" postfix="$(postfix)" env="$(environment)"
