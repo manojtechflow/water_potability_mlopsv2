@@ -12,32 +12,47 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
 import mlflow
 import mlflow.sklearn
 import mlflow.pyfunc
 from mlflow.tracking import MlflowClient
 
-TARGET_COL = "Potability"
+TARGET_COL = "cost"
 
 NUMERIC_COLS = [
-    "ph",
-    "Hardness",
-    "Solids",
-    "Chloramines",
-    "Sulfate",
-    "Conductivity",
-    "Organic_carbon",
-    "Trihalomethanes",
-    "Turbidity"
+    "distance",
+    "dropoff_latitude",
+    "dropoff_longitude",
+    "passengers",
+    "pickup_latitude",
+    "pickup_longitude",
+    "pickup_weekday",
+    "pickup_month",
+    "pickup_monthday",
+    "pickup_hour",
+    "pickup_minute",
+    "pickup_second",
+    "dropoff_weekday",
+    "dropoff_month",
+    "dropoff_monthday",
+    "dropoff_hour",
+    "dropoff_minute",
+    "dropoff_second",
 ]
 
+CAT_NOM_COLS = [
+    "store_forward",
+    "vendor",
+]
 
+CAT_ORD_COLS = [
+]
 
 def parse_args():
     '''Parse input arguments'''
+
     parser = argparse.ArgumentParser("predict")
     parser.add_argument("--model_name", type=str, help="Name of registered model")
     parser.add_argument("--model_input", type=str, help="Path of input model")
@@ -48,6 +63,28 @@ def parse_args():
     args = parser.parse_args()
 
     return args
+
+def main(args):
+    '''Read trained model and test dataset, evaluate model and save result'''
+
+    # Load the test data
+    test_data = pd.read_parquet(Path(args.test_data))
+
+    # Split the data into inputs and outputs
+    y_test = test_data[TARGET_COL]
+    X_test = test_data[NUMERIC_COLS + CAT_NOM_COLS + CAT_ORD_COLS]
+
+    # Load the model from input port
+    model =  mlflow.sklearn.load_model(args.model_input) 
+
+    # ---------------- Model Evaluation ---------------- #
+    yhat_test, score = model_evaluation(X_test, y_test, model, args.evaluation_output)
+
+    # ----------------- Model Promotion ---------------- #
+    if args.runner == "CloudRunner":
+        predictions, deploy_flag = model_promotion(args.model_name, args.evaluation_output, X_test, y_test, yhat_test, score)
+
+
 
 def model_evaluation(X_test, y_test, model, evaluation_output):
 
@@ -61,25 +98,25 @@ def model_evaluation(X_test, y_test, model, evaluation_output):
     output_data.to_csv((Path(evaluation_output) / "predictions.csv"))
 
     # Evaluate Model performance with the test set
-    accuracy = accuracy_score(y_test, yhat_test)
-    precision = precision_score(y_test, yhat_test)
-    recall = recall_score(y_test, yhat_test)
-    f1 = f1_score(y_test, yhat_test)
+    r2 = r2_score(y_test, yhat_test)
+    mse = mean_squared_error(y_test, yhat_test)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test, yhat_test)
 
     # Print score report to a text file
     (Path(evaluation_output) / "score.txt").write_text(
         f"Scored with the following model:\n{format(model)}"
     )
     with open((Path(evaluation_output) / "score.txt"), "a") as outfile:
-        outfile.write(f"Accuarcy: {accuracy:.2f} \n")
-        outfile.write(f"Precision: {precision:.2f} \n")
-        outfile.write(f"Recall: {recall:.2f} \n")
-        outfile.write(f"F1 Score: {f1:.2f} \n")
+        outfile.write("Mean squared error: {mse.2f} \n")
+        outfile.write("Root mean squared error: {rmse.2f} \n")
+        outfile.write("Mean absolute error: {mae.2f} \n")
+        outfile.write("Coefficient of determination: {r2.2f} \n")
 
-    mlflow.log_metric("test accuarcy", accuracy)
-    mlflow.log_metric("test precision", precision)
-    mlflow.log_metric("test recall", recall)
-    mlflow.log_metric("test f1", f1)
+    mlflow.log_metric("test r2", r2)
+    mlflow.log_metric("test mse", mse)
+    mlflow.log_metric("test rmse", rmse)
+    mlflow.log_metric("test mae", mae)
 
     # Visualize results
     plt.scatter(y_test, yhat_test,  color='black')
@@ -90,8 +127,7 @@ def model_evaluation(X_test, y_test, model, evaluation_output):
     plt.savefig("predictions.png")
     mlflow.log_artifact("predictions.png")
 
-    return yhat_test, accuracy
-
+    return yhat_test, r2
 
 def model_promotion(model_name, evaluation_output, X_test, y_test, yhat_test, score):
     
@@ -105,7 +141,7 @@ def model_promotion(model_name, evaluation_output, X_test, y_test, yhat_test, sc
         mdl = mlflow.pyfunc.load_model(
             model_uri=f"models:/{model_name}/{model_version}")
         predictions[f"{model_name}:{model_version}"] = mdl.predict(X_test)
-        scores[f"{model_name}:{model_version}"] = accuracy_score(
+        scores[f"{model_name}:{model_version}"] = r2_score(
             y_test, predictions[f"{model_name}:{model_version}"])
 
     if scores:
@@ -125,7 +161,7 @@ def model_promotion(model_name, evaluation_output, X_test, y_test, yhat_test, sc
     predictions["currrent model"] = yhat_test
 
     perf_comparison_plot = pd.DataFrame(
-        scores, index=["accuracy score"]).plot(kind='bar', figsize=(15, 10))
+        scores, index=["r2 score"]).plot(kind='bar', figsize=(15, 10))
     perf_comparison_plot.figure.savefig("perf_comparison.png")
     perf_comparison_plot.figure.savefig(Path(evaluation_output) / "perf_comparison.png")
 
@@ -133,29 +169,6 @@ def model_promotion(model_name, evaluation_output, X_test, y_test, yhat_test, sc
     mlflow.log_artifact("perf_comparison.png")
 
     return predictions, deploy_flag
-
-
-
-def main(args):
-    '''Read trained model and test dataset, evaluate model and save result'''
-
-    # Load the test data
-    test_data = pd.read_csv(Path(args.test_data))
-
-    # Split the data into inputs and outputs
-    y_test = test_data[TARGET_COL]
-    X_test = test_data[NUMERIC_COLS]
-
-    # Load the model from input port
-    model =  mlflow.sklearn.load_model(args.model_input) 
-
-    # ---------------- Model Evaluation ---------------- #
-    yhat_test, score = model_evaluation(X_test, y_test, model, args.evaluation_output)
-
-    # ----------------- Model Promotion ---------------- #
-    if args.runner == "CloudRunner":
-        predictions, deploy_flag = model_promotion(args.model_name, args.evaluation_output, X_test, y_test, yhat_test, score)
-
 
 if __name__ == "__main__":
 
