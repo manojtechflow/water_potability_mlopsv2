@@ -39,11 +39,12 @@ stages:
             inputs:
               azureSubscription: $(ado_service_connection_rg)
               scriptLocation: "inlineScript"
+              scriptType: "pscore"
               inlineScript: |
-                az deployment sub validate \
-                  --name $(Build.DefinitionName) \
-                  --template-file ./infrastructure/main.bicep \
-                  --location $(location) \
+                az deployment sub validate `
+                  --name $(Build.DefinitionName) `
+                  --template-file ./infrastructure/main.bicep `
+                  --location $(location) `
                   --parameters location=$(location) prefix=$(namespace) postfix=$(postfix) env=$(environment)
 
   - stage: CheckOutBicepAndDeploy
