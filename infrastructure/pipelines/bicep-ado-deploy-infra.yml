@@ -13,7 +13,7 @@ variables:
 
 trigger: none
 
-pool: <my-selfhosted-agent>
+pool: personal computer
 
 stages:
   - stage: Lint
