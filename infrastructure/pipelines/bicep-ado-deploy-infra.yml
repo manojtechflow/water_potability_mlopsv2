@@ -38,7 +38,7 @@ stages:
             displayName: Run Preflight Validation
             inputs:
               azureSubscription: $(ado_service_connection_rg)
-              scriptType: "bash"
+              scriptType: "ps"
               scriptLocation: "inlineScript"
               inlineScript: |
                 az deployment sub validate \
