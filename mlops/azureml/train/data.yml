@@ -8,4 +8,4 @@ $schema: https://azuremlschemas.azureedge.net/latest/data.schema.json
 type: uri_file
 name: water_potability
 description: water potability dataset
-path: ../../../../data/water_potability.csv
+path: ../../../data/water-data.csv
