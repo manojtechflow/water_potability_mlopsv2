@@ -14,8 +14,8 @@ variables:
   enable_monitoring: false
 
   # Azure DevOps
-  ado_service_connection_rg: Azure-ARM-Dev
-  ado_service_connection_aml_ws: Azure-ARM-Dev
+  ado_service_connection_rg: Azure-mk-Dev-water_potability
+  ado_service_connection_aml_ws: Azure-mk-Dev-water_potability
 
   # DO NOT TOUCH
 
