@@ -33,12 +33,11 @@ stages:
       - job: ValidateBicepCode
         displayName: Validate Bicep Code
         steps:
-          - task: AzureCli@2
+          - task: AzureCLI@2
             name: RunPreflightValidateion
             displayName: Run Preflight Validation
             inputs:
               azureSubscription: $(ado_service_connection_rg)
-              scriptType: "ps"
               scriptLocation: "inlineScript"
               inlineScript: |
                 az deployment sub validate \
