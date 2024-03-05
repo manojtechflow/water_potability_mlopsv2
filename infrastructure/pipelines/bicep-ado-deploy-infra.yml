@@ -13,7 +13,7 @@ variables:
 
 trigger: none
 
-pool: Azure Pipelines
+pool: Default
 
 stages:
   - stage: Lint
