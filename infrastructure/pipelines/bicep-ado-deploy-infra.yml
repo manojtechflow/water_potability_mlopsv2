@@ -39,7 +39,7 @@ stages:
             inputs:
               azureSubscription: $(ado_service_connection_rg)
               scriptLocation: "inlineScript"
-              scriptType: "pscore"
+              scriptType: "ps"
               inlineScript: |
                 az deployment sub validate `
                   --name $(Build.DefinitionName) `
