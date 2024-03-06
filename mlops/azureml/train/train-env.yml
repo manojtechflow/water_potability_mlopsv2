@@ -4,3 +4,26 @@ version: 1
 image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest
 conda_file: ../../../data-science/environment/train-conda.yml
 description: Environment created from a Docker image plus Conda environment to train taxi model.
+
+script: |
+  from azureml.core import Workspace, Environment
+
+  # Load Azure Machine Learning workspace
+  ws = Workspace.from_config()
+
+  # Define environment properties
+  env_name = "taxi-train-env"
+  env_version = "1"
+  image = "mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04:latest"
+  conda_file = "../../../data-science/environment/train-conda.yml"
+  description = "Environment created from a Docker image plus Conda environment to train taxi model."
+
+  # Check if the environment already exists
+  if env_name in ws.environments:
+      print(f"Environment {env_name} with version {env_version} already exists.")
+  else:
+      # Create a new environment
+      env = Environment.from_conda_specification(name=env_name, file_path=conda_file)
+      env.docker.base_image = image
+      env.register(workspace=ws, name=env_name, version=env_version, description=description)
+      print(f"Environment {env_name} with version {env_version} created successfully.")
